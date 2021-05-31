@@ -8,6 +8,7 @@ import com.appsdeveloperblog.app.ws.shared.dto.UserDTO;
 import com.appsdeveloperblog.app.ws.ui.model.request.UserDetailsRequestModel;
 
 import com.appsdeveloperblog.app.ws.ui.model.response.*;
+import jdk.dynalink.Operation;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.TypeToken;
 import org.springframework.beans.BeanUtils;
@@ -270,5 +271,28 @@ public class UserController {
         return EntityModel.of(returnValue, Arrays.asList(userLink, userAddressesLink,selfLink));
 
         // return returnValue;
+    }
+
+    /*
+    * http://localhost:8080/mobile-app-ws/users/email-verification?token=sdfsdf
+    */
+    @GetMapping(path = "/email-verification", produces = {
+            MediaType.APPLICATION_JSON_VALUE,
+            MediaType.APPLICATION_XML_VALUE })
+    public OperationStatusModel verifyEmailToken(@RequestParam(value = "token") String token) {
+
+        OperationStatusModel returnValue = new OperationStatusModel();
+        returnValue.setOperationName(RequestOperationName.VERIFY_EMAIL.name());
+
+        boolean isVerified = userService.verifyEmailToken(token); // return true if token is verified
+
+        if(isVerified) {
+            returnValue.setOperationName(RequestOperationStatus.SUCCESS.name());
+        }
+        else {
+            returnValue.setOperationResult(RequestOperationStatus.ERROR.name());
+        }
+
+        return returnValue;
     }
 }

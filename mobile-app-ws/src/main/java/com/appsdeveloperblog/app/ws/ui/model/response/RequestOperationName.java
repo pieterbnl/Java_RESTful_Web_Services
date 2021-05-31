@@ -1,5 +1,7 @@
 package com.appsdeveloperblog.app.ws.ui.model.response;
 
+import javax.annotation.Resource;
+
 public enum RequestOperationName {
-    DELETE
+    DELETE, VERIFY_EMAIL;
 }

@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -21,6 +22,7 @@ import com.appsdeveloperblog.app.ws.service.UserService;
 import com.appsdeveloperblog.app.ws.shared.dto.UserDTO;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 @Service
@@ -36,6 +38,9 @@ public class UserServiceImpl implements UserService {
     @Autowired
     BCryptPasswordEncoder bCryptPasswordEncoder;
 
+    // ***
+    // Prepare user entity object and store it in database
+    // ***
     @Override
     public UserDTO createUser(UserDTO user) {
 
@@ -68,8 +73,10 @@ public class UserServiceImpl implements UserService {
         String publicUserId = utils.generateUserID();
         userEntity.setUserId(publicUserId);
         userEntity.setEncryptedPassword(bCryptPasswordEncoder.encode(user.getPassword()));
+        userEntity.setEmailVerificationToken(utils.generateEmailVerificationToken(publicUserId));
+        userEntity.setEmailVerificationStatus(false);
 
-        // saving the info into the database, using Spring .save() method
+        // Persist user entity class data in database, using Spring .save() method
         UserEntity storedUserDetails = userRepository.save(userEntity);
 
         // BeanUtils.copyProperties(storedUserDetails, returnValue);
@@ -86,7 +93,7 @@ public class UserServiceImpl implements UserService {
         if(userEntity == null) throw new UsernameNotFoundException(email);
 
         UserDTO returnValue = new UserDTO();
-        BeanUtils.copyProperties(userEntity, returnValue); // ! shouldn't this be switched around ?
+        BeanUtils.copyProperties(userEntity, returnValue);
         return returnValue;
     }
 
@@ -174,6 +181,33 @@ public class UserServiceImpl implements UserService {
 
         // If we have user details, this method needs to return a user object
         // This is a Spring object that implements the user details interface
-        return new User(userEntity.getEmail(), userEntity.getEncryptedPassword(), new ArrayList<>());
+
+        // By default, the user is disabled,
+        // only if user has confirmed his email address (=email verification status to be set to true),
+        // the user is to be enabled
+        return new User(userEntity.getEmail(), userEntity.getEncryptedPassword(),
+                userEntity.getEmailVerificationStatus(),
+                true, true, true, new ArrayList<>());
+
+        //return new User(userEntity.getEmail(), userEntity.getEncryptedPassword(), new ArrayList<>());
     }
-}
+
+    @Override
+    public boolean verifyEmailToken(String token) {
+        boolean returnValue = false;
+
+        // Find user by token
+        UserEntity userEntity = userRepository.findUserByEmailVerificationToken(token);
+
+        if (userEntity != null) {
+            boolean hasTokenExpired = Utils.hasTokenExpired(token);
+            if (!hasTokenExpired) {
+                userEntity.setEmailVerificationToken(null);
+                userEntity.setEmailVerificationStatus(Boolean.TRUE);
+                userRepository.save(userEntity);
+                returnValue = true;
+            }
+        }
+        return returnValue;
+        }
+    }
