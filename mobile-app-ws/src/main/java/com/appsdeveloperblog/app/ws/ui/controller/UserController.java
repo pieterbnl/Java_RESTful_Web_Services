@@ -8,7 +8,6 @@ import com.appsdeveloperblog.app.ws.shared.dto.UserDTO;
 import com.appsdeveloperblog.app.ws.ui.model.request.UserDetailsRequestModel;
 
 import com.appsdeveloperblog.app.ws.ui.model.response.*;
-import jdk.dynalink.Operation;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.TypeToken;
 import org.springframework.beans.BeanUtils;
@@ -287,7 +286,7 @@ public class UserController {
         boolean isVerified = userService.verifyEmailToken(token); // return true if token is verified
 
         if(isVerified) {
-            returnValue.setOperationName(RequestOperationStatus.SUCCESS.name());
+            returnValue.setOperationResult(RequestOperationStatus.SUCCESS.name());
         }
         else {
             returnValue.setOperationResult(RequestOperationStatus.ERROR.name());

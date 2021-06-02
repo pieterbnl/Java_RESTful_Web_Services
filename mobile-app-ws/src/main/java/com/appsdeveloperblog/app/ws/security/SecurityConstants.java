@@ -8,7 +8,7 @@ public class SecurityConstants {
     public static final String TOKEN_PREFIX = "Bearer "; // String value, and after this value a token value will be provided
     public static final String HEADER_STRING = "Authorization";
     public static final String SIGN_UP_URL = "/users";
-    public static final String VERIFICATION_EMAIL_URL = "/users/e-mail verification";
+    public static final String VERIFICATION_EMAIL_URL = "/users/email-verification";
 
     // note: SpringApplicationContext (own created class) makes it possible to access Beans, created by Spring framework
     // in this case the bean named 'AppProperties'
