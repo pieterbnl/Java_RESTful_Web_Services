@@ -5,6 +5,7 @@ import com.appsdeveloperblog.app.ws.service.AddressService;
 import com.appsdeveloperblog.app.ws.service.UserService;
 import com.appsdeveloperblog.app.ws.shared.dto.AddressDTO;
 import com.appsdeveloperblog.app.ws.shared.dto.UserDTO;
+import com.appsdeveloperblog.app.ws.ui.model.request.PasswordResetRequestModel;
 import com.appsdeveloperblog.app.ws.ui.model.request.UserDetailsRequestModel;
 
 import com.appsdeveloperblog.app.ws.ui.model.response.*;
@@ -291,6 +292,37 @@ public class UserController {
         else {
             returnValue.setOperationResult(RequestOperationStatus.ERROR.name());
         }
+
+        return returnValue;
+    }
+
+    /*
+     * http://localhost:8080/mobile-app-ws/users/password-reset-request
+     * */
+    // Note:
+    // This project uses Spring security, meaning all webservice endpoints are protected, requiring user authentication
+    // Unless certain webservice endpoints are specifically made public.
+    // When a user forgot its password and is trying to reset it, he can not authenticate with the API.
+    // Therefore, the request for password-reset should be a public service endpoint.
+    // This is handled in the WebSecurity class
+    @PostMapping(path = "/password-reset-request",
+            produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
+            consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE}
+    )
+    public OperationStatusModel requestReset(@RequestBody PasswordResetRequestModel passwordResetRequestModel) {
+
+        // Used as a return data type for more general purpose operations
+        OperationStatusModel returnValue = new OperationStatusModel();
+
+        // RequestPasswordReset takes email address from the password request model
+        // Contains the logic to create an unique reset password token
+        // It will return true if the user is found
+        boolean operationResult = userService.requestPasswordReset(passwordResetRequestModel.getEmail());
+
+        returnValue.setOperationName(RequestOperationName.REQUEST_PASSWORD_RESET.name());
+        returnValue.setOperationResult(RequestOperationStatus.ERROR.name());
+
+        if(operationResult) returnValue.setOperationResult(RequestOperationStatus.SUCCESS.name());
 
         return returnValue;
     }

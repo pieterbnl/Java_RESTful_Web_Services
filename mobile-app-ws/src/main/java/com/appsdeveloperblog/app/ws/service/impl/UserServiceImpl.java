@@ -1,6 +1,8 @@
 package com.appsdeveloperblog.app.ws.service.impl;
 
 import com.appsdeveloperblog.app.ws.exceptions.UserServiceException;
+import com.appsdeveloperblog.app.ws.io.entity.PasswordResetTokenEntity;
+import com.appsdeveloperblog.app.ws.io.repositories.PasswordResetTokenRepository;
 import com.appsdeveloperblog.app.ws.shared.AmazonSES;
 import com.appsdeveloperblog.app.ws.shared.Utils;
 import com.appsdeveloperblog.app.ws.shared.dto.AddressDTO;
@@ -39,6 +41,10 @@ public class UserServiceImpl implements UserService {
     @Autowired
     BCryptPasswordEncoder bCryptPasswordEncoder;
 
+    // Making password reset token entity available in this user service implementation
+    @Autowired
+    PasswordResetTokenRepository passwordResetTokenRepository;
+
     // ***
     // Prepare user entity object and store it in database
     // ***
@@ -46,14 +52,14 @@ public class UserServiceImpl implements UserService {
     public UserDTO createUser(UserDTO user) {
 
         // Check if user exists already, if yes, throw an exception (which will automatically be handled by Spring Boot)
-        if(userRepository.findByEmail(user.getEmail()) != null) {
+        if (userRepository.findByEmail(user.getEmail()) != null) {
             System.out.println("record already exists??");
             throw new RuntimeException("Record already exists");
         }
 
         // Loop through addresses, stored in UserDTO
         // Generate addressID for each of addresses object and put it back in UserDTO
-        for(int i=0; i<user.getAddresses().size();i++) {
+        for (int i = 0; i < user.getAddresses().size(); i++) {
             AddressDTO address = user.getAddresses().get(i);
             address.setUserDetails(user);
             address.setAddressId(utils.generateAddressID());
@@ -91,11 +97,10 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDTO getUser(String email)
-    {
+    public UserDTO getUser(String email) {
         UserEntity userEntity = userRepository.findByEmail(email);
 
-        if(userEntity == null) throw new UsernameNotFoundException(email);
+        if (userEntity == null) throw new UsernameNotFoundException(email);
 
         UserDTO returnValue = new UserDTO();
         BeanUtils.copyProperties(userEntity, returnValue);
@@ -107,7 +112,7 @@ public class UserServiceImpl implements UserService {
         UserDTO returnValue = new UserDTO();
         UserEntity userEntity = userRepository.findByUserId(userId);
 
-        if(userEntity == null)
+        if (userEntity == null)
             // throw new UsernameNotFoundException(userId);
             // throw new UserServiceException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
             throw new UserServiceException("User with ID: " + userId + " not found");
@@ -151,7 +156,7 @@ public class UserServiceImpl implements UserService {
 
 
         // To make sure pages start from 1
-        if(page>0) page = page -1;
+        if (page > 0) page = page - 1;
 
         // We can simply use Pageable and PageRequest to get pagination
         // Because our UserRepository extends the PagingAndSortingRepository interface
@@ -182,7 +187,7 @@ public class UserServiceImpl implements UserService {
         UserEntity userEntity = userRepository.findByEmail(email);
 
         // throw Spring standard exception if no user is found
-        if(userEntity == null) throw new UsernameNotFoundException(email);
+        if (userEntity == null) throw new UsernameNotFoundException(email);
 
         // If we have user details, this method needs to return a user object
         // This is a Spring object that implements the user details interface
@@ -214,5 +219,45 @@ public class UserServiceImpl implements UserService {
             }
         }
         return returnValue;
+    }
+
+    @Override
+    public boolean requestPasswordReset(String email) {
+
+        boolean returnValue = false;
+
+        // Check if user actually exists in database
+        UserEntity userEntity = userRepository.findByEmail(email);
+
+        // If user doesn't exist, return false
+        if (userEntity == null) {
+            return returnValue;
+        } else {
+
+            // Generate a unique password reset token for user
+            String token = new Utils().generatePasswordResetToken(userEntity.getUserId());
+
+            // Create an entity to hold password reset token
+            PasswordResetTokenEntity passwordResetTokenEntity = new PasswordResetTokenEntity();
+
+            // Set password reset token and user so that they are associated
+            passwordResetTokenEntity.setToken(token);
+            passwordResetTokenEntity.setUserDetails(userEntity);
+
+            // Save and persist password reset token in database
+            passwordResetTokenRepository.save(passwordResetTokenEntity);
+
+            // Send password reset email to user with Amazon simple email service
+            // To do so, providing name + email address, as well as the password reset token
+            // The token will be appended to the user's password reset link as an URL request parameter
+            // The token will be extracted later for verification
+            returnValue = new AmazonSES().sendPasswordResetRequest(
+                    userEntity.getFirstName(),
+                    userEntity.getEmail(),
+                    token);
+
+            // Return value will now be set to true
+            return returnValue;
         }
     }
+}

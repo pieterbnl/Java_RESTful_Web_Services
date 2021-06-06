@@ -55,13 +55,27 @@ public class Utils {
 
     public String generateEmailVerificationToken(String userId) {
 
-        // Build token with builder
+        // User JSON webtoken library to build new token
+        // Expiration time of token is set by adding 10 days (EXPIRATION_TIME) to current time
+        // Token is signed with Jwts HS512 and own security constant class
         String token = Jwts.builder()
                 .setSubject(userId)
-                .setExpiration(new Date(System.currentTimeMillis() + SecurityConstants.EXPIRATION_TIME)) // set expiration time of token by adding 10 days (EXPIRATION_TIME) to current time
-                .signWith(SignatureAlgorithm.HS512, SecurityConstants.getTokenSecret()) // Sign token with Jwts HS512 and own security constant class
+                .setExpiration(new Date(System.currentTimeMillis() + SecurityConstants.EXPIRATION_TIME))
+                .signWith(SignatureAlgorithm.HS512, SecurityConstants.getTokenSecret())
                 .compact();
+        return token;
+    }
 
+    public String generatePasswordResetToken(String userId)
+    {
+        // User JSON webtoken library to build new token
+        // Expiration time of token is set by adding 1 hour (EXPIRATION_TIME) to current time - considering it's a password reset
+        // Token is signed with Jwts HS512 and own security constant class
+        String token = Jwts.builder()
+                .setSubject(userId)
+                .setExpiration(new Date(System.currentTimeMillis() + SecurityConstants.PASSWORD_RESET_EXPIRATION_TIME))
+                .signWith(SignatureAlgorithm.HS512, SecurityConstants.getTokenSecret())
+                .compact();
         return token;
     }
 }
