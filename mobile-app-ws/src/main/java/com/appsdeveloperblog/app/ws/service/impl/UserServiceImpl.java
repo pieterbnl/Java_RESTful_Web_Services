@@ -260,4 +260,39 @@ public class UserServiceImpl implements UserService {
             return returnValue;
         }
     }
+
+    @Override
+    public boolean resetPassword(String token, String password) {
+        boolean returnValue = false;
+
+        // Check if token has been expired
+        if(Utils.hasTokenExpired(token)) return returnValue;
+
+        // Check if token is in database
+        PasswordResetTokenEntity passwordResetTokenEntity = passwordResetTokenRepository.findByToken(token);
+
+        // Check if token is null or not. If null, it doesn't exist.
+        if (passwordResetTokenEntity == null) return returnValue;
+
+        // At this point we're good to update the password
+        // Prepare the new password: encode using Spring framework secure encryption
+        String encodedPassword = bCryptPasswordEncoder.encode(password);
+
+        // Set new password for user by using the (autowired) user entity and by getting user details from passwordResetTokenEntity
+        UserEntity userEntity = passwordResetTokenEntity.getUserDetails();
+
+        // User the (also autowired) userRepository, to save the user entity with new password
+        // When succesfully executed, the updated userEntity object will be returned
+        userEntity.setEncryptedPassword(encodedPassword);
+        UserEntity savedUserEntity = userRepository.save(userEntity);
+
+        // Verify if password was saved successfully by comparing the in the database stored value and the just generated value
+        if (savedUserEntity != null && savedUserEntity.getEncryptedPassword().equalsIgnoreCase(encodedPassword)) returnValue = true;
+
+        // Use the out of box 'delete' functionality to delete the password reset token entity from database
+        // This ensures that if user attempts to use the same password for password reset, he cannot use the same token twice
+        passwordResetTokenRepository.delete(passwordResetTokenEntity);
+
+        return returnValue;
+    }
 }

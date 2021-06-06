@@ -5,6 +5,7 @@ import com.appsdeveloperblog.app.ws.service.AddressService;
 import com.appsdeveloperblog.app.ws.service.UserService;
 import com.appsdeveloperblog.app.ws.shared.dto.AddressDTO;
 import com.appsdeveloperblog.app.ws.shared.dto.UserDTO;
+import com.appsdeveloperblog.app.ws.ui.model.request.PasswordResetModel;
 import com.appsdeveloperblog.app.ws.ui.model.request.PasswordResetRequestModel;
 import com.appsdeveloperblog.app.ws.ui.model.request.UserDetailsRequestModel;
 
@@ -320,6 +321,25 @@ public class UserController {
         boolean operationResult = userService.requestPasswordReset(passwordResetRequestModel.getEmail());
 
         returnValue.setOperationName(RequestOperationName.REQUEST_PASSWORD_RESET.name());
+        returnValue.setOperationResult(RequestOperationStatus.ERROR.name());
+
+        if(operationResult) returnValue.setOperationResult(RequestOperationStatus.SUCCESS.name());
+
+        return returnValue;
+    }
+
+    // End-point for password reset (must also be public as user cant authenticate himself at this point)
+    @PostMapping(path = "/password-reset",
+            consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE}
+    )
+    public OperationStatusModel resetPassword(@RequestBody PasswordResetModel passwordResetModel) {
+        OperationStatusModel returnValue = new OperationStatusModel();
+
+        boolean operationResult = userService.resetPassword(
+                passwordResetModel.getToken(),
+                passwordResetModel.getPassword());
+
+        returnValue.setOperationName(RequestOperationName.PASSWORD_RESET.name());
         returnValue.setOperationResult(RequestOperationStatus.ERROR.name());
 
         if(operationResult) returnValue.setOperationResult(RequestOperationStatus.SUCCESS.name());
